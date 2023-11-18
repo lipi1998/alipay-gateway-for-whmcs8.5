@@ -62,6 +62,8 @@ class alipayfull_link {
         $alipayConfig->setSignType("RSA2");
         $alipayClient = new AopClient($alipayConfig);
         $request = new AlipayTradePagePayRequest();
+        $request->setNotifyUrl($params['systemurl']."/modules/gateways/callback/alipay_full/notify.php");
+        $request->setReturnUrl($params['systemurl']."/modules/gateways/callback/alipay_full/return.php");
         $request->setBizContent("{".
             "\"out_trade_no\":\""."lipi".md5(uniqid())."-".$params['invoiceid']."\",".
             "\"total_amount\":\"".$params['amount']."\",".
@@ -85,6 +87,8 @@ class alipayfull_link {
         $alipayConfig->setSignType("RSA2");
         $alipayClient = new AopClient($alipayConfig);
         $request = new AlipayTradeWapPayRequest();
+        $request->setNotifyUrl($params['systemurl']."/modules/gateways/callback/alipay_full/notify.php");
+        $request->setReturnUrl($params['systemurl']."/modules/gateways/callback/alipay_full/return.php");
         $request->setBizContent("{".
             "\"out_trade_no\":\""."lipi".md5(uniqid())."-".$params['invoiceid']."\",".
             "\"total_amount\":\"".$params['amount']."\",".
