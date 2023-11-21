@@ -1,10 +1,10 @@
 <?php
 require_once __DIR__  . "/init.php";
-require_once __DIR__ .'/aop/AopClient.php';
-require_once __DIR__ .'/aop/AopCertClient.php';
-require_once __DIR__ .'/aop/AopCertification.php';
-require_once __DIR__ .'/aop/AlipayConfig.php';
-require_once __DIR__ .'/aop/request/AlipayTradeQueryRequest.php';
+require_once __DIR__ .'../../class/aop/AopClient.php';
+require_once __DIR__ .'../../class/aop/AopCertClient.php';
+require_once __DIR__ .'../../class/aop/AopCertification.php';
+require_once __DIR__ .'../../class/aop/AlipayConfig.php';
+require_once __DIR__ .'../../class/aop/request/AlipayTradeQueryRequest.php';
 
 $out_trade_no = $_GET['out_trade_no'];
 $trade_no = $_GET['trade_no'];
