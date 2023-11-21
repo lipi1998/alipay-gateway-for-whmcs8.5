@@ -1,18 +1,45 @@
 <?php
 require_once __DIR__  . "/init.php";
+require_once __DIR__ .'/aop/AopClient.php';
+require_once __DIR__ .'/aop/AopCertClient.php';
+require_once __DIR__ .'/aop/AopCertification.php';
+require_once __DIR__ .'/aop/AlipayConfig.php';
+require_once __DIR__ .'/aop/request/AlipayTradeQueryRequest.php';
 
 $out_trade_no = $_GET['out_trade_no'];
 $trade_no = $_GET['trade_no'];
 $trade_status = $_GET['trade_status'];
 $amount    = $_GET['total_fee'];
 $invoice_id = explode("-",$out_trade_no)[1];
-require_once __DIR__  ."/init_mapi.php";
+
 
 global $CONFIG;
+$params = getGatewayVariables($gatewaymodule);
+if (!$params["type"]) die("Module Not Activated");
+ $aop = new AopClient ();
+$aop->gatewayUrl = 'https://openapi.alipay.com/gateway.do';
+$aop->appId = $params['app_id'];
+$aop->rsaPrivateKey = $params['rsa_key'];
+$aop->alipayrsaPublicKey=$params['alipay_key'];
+$aop->apiVersion = '1.0';
+$aop->signType = 'RSA2';
+$aop->postCharset='GBK';
+$aop->format='json';
+$request = new AlipayTradeQueryRequest ();
+$request->setBizContent("{" .
+"  \"out_trade_no\":\"".$out_trade_no."\"," .
+"  \"trade_no\":\"".$trade_no."\"," .
+"  \"query_options\":[" .
+"    \"trade_settle_info\"" .
+"  ]" .
+"}");
+$result = $aop->execute ( $request); 
 
-if ($callback_result){
-    if($trade_status == 'TRADE_FINISHED' or $trade_status == 'TRADE_SUCCESS')
-    {
+$responseNode = str_replace(".", "_", $request->getApiMethodName()) . "_response";
+$resultCode = $result->$responseNode->code;
+
+if (!empty($resultCode)&&$resultCode == 10000){
+    
             header("Location: ".$CONFIG["SystemURL"]."/viewinvoice.php?id=".$invoice_id);
             $invoiceid = checkCbInvoiceID($invoice_id,$GATEWAY["name"]);
             $amount = convert_helper( $invoice_id, $amount );
@@ -20,10 +47,7 @@ if ($callback_result){
             addInvoicePayment($invoice_id,$trade_no,$amount,$fee,$gatewaymodule);
             logTransaction($gatewaymodule, $_GET, "即时到账 - 异步入账");
             exit();
-    } else {
-        header("Location: ".$CONFIG["SystemURL"]."/viewinvoice.php?id=".$invoice_id);
-        exit();
-    }
+    
 } else {
     exit("入账失败 , 请联系管理员为您手工入账");
 }
