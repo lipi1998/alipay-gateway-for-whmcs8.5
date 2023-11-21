@@ -1,10 +1,10 @@
 <?php
 require_once __DIR__  .  "/init.php";
-require_once __DIR__ .'../../class/aop/AopClient.php';
-require_once __DIR__ .'../../class/aop/AopCertClient.php';
-require_once __DIR__ .'../../class/aop/AopCertification.php';
-require_once __DIR__ .'../../class/aop/AlipayConfig.php';
-require_once __DIR__ .'../../class/aop/request/AlipayTradeQueryRequest.php';
+require_once __DIR__ ."/../../class/alipay_full/aop/AopClient.php";
+require_once __DIR__ ."/../../class/alipay_full/aop/AopCertClient.php";
+require_once __DIR__ ."/../../class/alipay_full/aop/AopCertification.php";
+require_once __DIR__ ."/../../class/alipay_full/aop/AlipayConfig.php";
+require_once __DIR__ ."/../../class/alipay_full/aop/request/AlipayTradeQueryRequest.php";
 
 
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -12,7 +12,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 $out_trade_no = $_POST['out_trade_no'];
 $trade_no = $_POST['trade_no'];
 $trade_status = $_POST['trade_status'];
-$amount    = $_POST['total_fee'];
+$amount    = $_POST['total_amount'];
 $invoice_id = explode("-",$out_trade_no)[1];
 
 $params = getGatewayVariables($gatewaymodule);
@@ -24,7 +24,7 @@ $aop->rsaPrivateKey = $params['rsa_key'];
 $aop->alipayrsaPublicKey=$params['alipay_key'];
 $aop->apiVersion = '1.0';
 $aop->signType = 'RSA2';
-$aop->postCharset='GBK';
+$aop->postCharset='UTF-8';
 $aop->format='json';
 $request = new AlipayTradeQueryRequest ();
 $request->setBizContent("{" .
