@@ -45,7 +45,7 @@ if (!empty($resultCode)&&$resultCode == 10000){
             $amount = convert_helper( $invoice_id, $amount );
             checkCbTransID($trade_no);
             addInvoicePayment($invoice_id,$trade_no,$amount,$fee,$gatewaymodule);
-            logTransaction($gatewaymodule, $_GET, "即时到账 - 异步入账");
+            logTransaction($gatewaymodule, $_GET, "即时到账 - 同步入账");
             exit();
     
 } else {
