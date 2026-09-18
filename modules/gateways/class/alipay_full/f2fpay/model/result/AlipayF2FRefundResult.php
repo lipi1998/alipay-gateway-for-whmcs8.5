@@ -40,5 +40,3 @@ class AlipayF2FRefundResult
         return $this->response;
     }
 }
-
-?>

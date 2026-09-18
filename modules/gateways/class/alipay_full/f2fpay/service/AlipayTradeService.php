@@ -5,7 +5,15 @@
  * Date: 16/5/19
  * Time: 下午2:09
  */
-require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'./../../AopSdk.php';
+// 显式加载所需的 aop 类。原先此处引入 AopSdk.php，由 lotusphp 自动加载器
+// 用 include() 重新载入整个 aop 目录，会与调用方的 require_once 冲突并触发
+// "Cannot redeclare" 致命错误，同时每次请求都要扫描数千个 SDK 文件。
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/AopClient.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradePayRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradePrecreateRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradeQueryRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradeRefundRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradeCancelRequest.php';
 require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'./../model/result/AlipayF2FPayResult.php';
 require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../model/result/AlipayF2FQueryResult.php';
 require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../model/result/AlipayF2FRefundResult.php';
@@ -356,16 +364,6 @@ class AlipayTradeService {
 		// $text=iconv("GBK", "UTF-8//IGNORE", $text);
 		//$text = characet ( $text );
 		file_put_contents ( "log/log.txt", date ( "Y-m-d H:i:s" ) . "  " . $text . "\r\n", FILE_APPEND );
-	}
-
-	/** *利用google api生成二维码图片
-	 * $content：二维码内容参数
-	 * $size：生成二维码的尺寸，宽度和高度的值
-	 * $lev：可选参数，纠错等级
-	 * $margin：生成的二维码离边框的距离
-	 */
-	function create_erweima($content, $size = '200', $lev = 'L', $margin= '0') {
-		return urlencode($content);
 	}
 
 }

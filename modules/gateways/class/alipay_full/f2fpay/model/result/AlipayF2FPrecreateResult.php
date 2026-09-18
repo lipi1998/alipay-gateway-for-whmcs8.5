@@ -40,5 +40,3 @@ class AlipayF2FPrecreateResult
         return $this->response;
     }
 }
-
-?>
