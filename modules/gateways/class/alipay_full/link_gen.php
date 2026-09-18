@@ -49,54 +49,71 @@ class alipayfull_link {
         return $qr.$normal;
     }
     
-    public function normal_pcpay($params){
-        // $privateKey = "MIIEpAIBAAKCAQEA3MahFATZJoHjhXatXUmrYhib4ox872lZ9l8k6O4a4vmHfBsKhqbU7f8ePDRx/KguH4oHpYftR6XBEVzdTQOeJmwOJh8MCDVSjnr5BmgPLQEq67cGPrjlPAxSbhqvLmUzTQq0rEITLMWoZNr+hOyHwoiqVVLz8MD44PVRksHfEM+rQUsqj0kunHYhntYuCs3clZHJahMZ3wJGUwvxUfVjvrT0kR6d1SASbSSTycbYl7grFKObLpRuLu7OS7KwNeuGnNM8PiBWeq4ncR+JVn1wXz1oDJSbbybSHDxOugIanwyWmgOaEXQqoD9s5pOI8X1RUhLvYJXNUw1M/Y3x7ApZHwIDAQABAoIBAFmqTldsFKmgDUDyTzzZI8MGjaE4P7GYjxIR2FLGCaNvhsgvz1mavlYezC/VeQoNYBYtICfpicQUnNIpbjPOKVgfgKuY5nEa/vmhFiy07JzxoXX0cpPc0jVOJ9hR/B4SugArPe/MMi9344l6q+5ehlDK4qsesrZwGWR8HfJFzQvtGpksvWnoTyz/Y3aDtOzA7e47g9/IuO1jY+aPD3HID8b4trHDlbMnaysvUexBqZJSg8vw+v3rvd9207vD7BUcuT1ssMIjiZnAT5yTUHtaNQanKczSPQ4vjgdGdX2NL2uf569oLWvlZNBTDtF8f8tv8EAqIeLaYZBOkFx9WYGfUeECgYEA+mEyPcyzpzgIT0NaLBfLoSFg2P3mcunrfmJ+fDv/zUtWciZF/zZfkTOLmVTxnHn9Z+DSWfXQLRpqVdkjt7Bb8A9zYKPRKXeCAbCsAZx8LrHGsrT4ipcEADlZqvMtOH4jgmixvfLiSdWcaDpGwKTAw+RZdppnWWnyChEJ+nkdey8CgYEA4btQsYbZkybtN1Y2T96BNgIyA+zAJUmgnNA8m/GUWtao6D9LJ6YoGKJNl5Qkq7tvArvkzwKNkZluJ7CWdHoghtNV+AZ9HQ2x/xk0w1xgpLR5LQIp6XbnFLkIeCFoFfOixNn7FrOQDbDQXYcYRBLDJ0Grt7k5Ov6otKVEzkjWxRECgYAGAHx21Mhdss8oL0IjGnLsKuOqb/OtP4RApFXJ3ppULoEk/VviMUh7L5QiGdIs4RO9ALuqImVaH277HdhoV9bsW0J1x5eE+fNo3PZSl5C2gdZ0hDgNAm+7HaTTnz6vQv7Q6neQSRk5keBM81Cs34Yra/blC/B8STjfGud1VJ/rSwKBgQCTE6Y/FVr8Sxeyv4SBw7sywnluHzsO0ItKwU9MWDpOeaDyOhMw0U08x7uAsPC3yFdLU7uAuewd2vdv+tn9KHm6/0X7ZdbtMDgyu2yqga0ig8iUb915FZT45prDExkrfGQomNLF9tc8ZGFPHy/LYuIu2NYWziOg8b5gfXJ4afMt0QKBgQCI300PRZgji7+sntIxpx6U9tgXj4xsByzCwZ3ZVL5SQ66ZquS5vlLQjaJcC9oeFCRRzNHJoghi1SNdNiyXjc7UBF0AbvpRT2x5CmrFYrQDrLDKS/z42yk2ROwl3I/SO7Sv65drmBzwieGk83jk9vfGt2BNvyVj87ximTd6dRsprA==";
-        // $alipayPublicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAok8hnb8hEZBNO+axeUgL1b7PYkVxV+Vly1h5QWbNLPFk/Q4EOcqpc4gqXCamR6AGQFhZ6qY/szu0LisTbJkdZIvJW3zlBLAfK1eG13Cg1x4tOa0DZRaA+YIfDJHlkU2tosjc626Uygb651Z+h6QLu7ncNE4quTdXGmg4lfgnZV5wJlWXRXWSbXZfNYNGDcCJg9lY4wsCb7oyG3lh656DZz5EIZ5/axE/TNhXmLFl8LlBvZvKMKqjMRIyM63BsflShw3fGtFbf8bU15rMwYkb6amuBn1Py91CuZoOCX7L4wQqVUmWiJFCDWmEIU1ugE3JTAPIzEjR4E0ieVGdkhXgOQIDAQAB";
+    private function normalize_key($key){
+        return trim(str_replace(
+            [
+                "\r",
+                "\n",
+                "-----BEGIN RSA PRIVATE KEY-----",
+                "-----END RSA PRIVATE KEY-----",
+                "-----BEGIN PUBLIC KEY-----",
+                "-----END PUBLIC KEY-----",
+                "-----BEGIN PRIVATE KEY-----",
+                "-----END PRIVATE KEY-----",
+            ],
+            "",
+            $key
+        ));
+    }
+
+    private function build_alipay_client($params){
+        if (empty($params['app_id']) || empty($params['rsa_key']) || empty($params['alipay_key'])) {
+            throw new Exception("管理员未完整配置 APPID / RSA私钥 / 支付宝公钥");
+        }
         $alipayConfig = new AlipayConfig();
         $alipayConfig->setServerUrl("https://openapi.alipay.com/gateway.do");
-        $alipayConfig->setAppId($params['app_id']);
-        $alipayConfig->setPrivateKey($params['rsa_key']);
+        $alipayConfig->setAppId(trim($params['app_id']));
+        $alipayConfig->setPrivateKey($this->normalize_key($params['rsa_key']));
         $alipayConfig->setFormat("json");
-        $alipayConfig->setAlipayPublicKey($params['alipay_key']);
+        $alipayConfig->setAlipayPublicKey($this->normalize_key($params['alipay_key']));
         $alipayConfig->setCharset("UTF-8");
         $alipayConfig->setSignType("RSA2");
-        $alipayClient = new AopClient($alipayConfig);
+        return new AopClient($alipayConfig);
+    }
+
+    private function build_biz_content($params, $product_code){
+        return json_encode([
+            "out_trade_no" => "lipi".md5(uniqid())."-".$params['invoiceid'],
+            "total_amount" => $params['amount'],
+            "subject" => $params['companyname']."订单 [# ".$params['invoiceid']." ]",
+            "product_code" => $product_code,
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function normal_pcpay($params){
+        try {
+            $alipayClient = $this->build_alipay_client($params);
+        } catch (Exception $e) {
+            return '<span style="color:red">'.$e->getMessage().'</span>';
+        }
         $request = new AlipayTradePagePayRequest();
         $request->setNotifyUrl($params['systemurl']."/modules/gateways/callback/alipay_full/notify.php");
         $request->setReturnUrl($params['systemurl']."/modules/gateways/callback/alipay_full/return.php");
-        $request->setBizContent("{".
-            "\"out_trade_no\":\""."lipi".md5(uniqid())."-".$params['invoiceid']."\",".
-            "\"total_amount\":\"".$params['amount']."\",".
-            "\"subject\":\"".$params['companyname']."订单 [# ".$params['invoiceid']." ]"."\",".
-            "\"product_code\":\"FAST_INSTANT_TRADE_PAY\"".
-        "}");
-        $responseResult = $alipayClient->pageExecute($request);
-        return $responseResult;
+        $request->setBizContent($this->build_biz_content($params, "FAST_INSTANT_TRADE_PAY"));
+        return $alipayClient->pageExecute($request);
     }
 
     public function normal_h5pay($params){
-        // $privateKey = "MIIEpAIBAAKCAQEA3MahFATZJoHjhXatXUmrYhib4ox872lZ9l8k6O4a4vmHfBsKhqbU7f8ePDRx/KguH4oHpYftR6XBEVzdTQOeJmwOJh8MCDVSjnr5BmgPLQEq67cGPrjlPAxSbhqvLmUzTQq0rEITLMWoZNr+hOyHwoiqVVLz8MD44PVRksHfEM+rQUsqj0kunHYhntYuCs3clZHJahMZ3wJGUwvxUfVjvrT0kR6d1SASbSSTycbYl7grFKObLpRuLu7OS7KwNeuGnNM8PiBWeq4ncR+JVn1wXz1oDJSbbybSHDxOugIanwyWmgOaEXQqoD9s5pOI8X1RUhLvYJXNUw1M/Y3x7ApZHwIDAQABAoIBAFmqTldsFKmgDUDyTzzZI8MGjaE4P7GYjxIR2FLGCaNvhsgvz1mavlYezC/VeQoNYBYtICfpicQUnNIpbjPOKVgfgKuY5nEa/vmhFiy07JzxoXX0cpPc0jVOJ9hR/B4SugArPe/MMi9344l6q+5ehlDK4qsesrZwGWR8HfJFzQvtGpksvWnoTyz/Y3aDtOzA7e47g9/IuO1jY+aPD3HID8b4trHDlbMnaysvUexBqZJSg8vw+v3rvd9207vD7BUcuT1ssMIjiZnAT5yTUHtaNQanKczSPQ4vjgdGdX2NL2uf569oLWvlZNBTDtF8f8tv8EAqIeLaYZBOkFx9WYGfUeECgYEA+mEyPcyzpzgIT0NaLBfLoSFg2P3mcunrfmJ+fDv/zUtWciZF/zZfkTOLmVTxnHn9Z+DSWfXQLRpqVdkjt7Bb8A9zYKPRKXeCAbCsAZx8LrHGsrT4ipcEADlZqvMtOH4jgmixvfLiSdWcaDpGwKTAw+RZdppnWWnyChEJ+nkdey8CgYEA4btQsYbZkybtN1Y2T96BNgIyA+zAJUmgnNA8m/GUWtao6D9LJ6YoGKJNl5Qkq7tvArvkzwKNkZluJ7CWdHoghtNV+AZ9HQ2x/xk0w1xgpLR5LQIp6XbnFLkIeCFoFfOixNn7FrOQDbDQXYcYRBLDJ0Grt7k5Ov6otKVEzkjWxRECgYAGAHx21Mhdss8oL0IjGnLsKuOqb/OtP4RApFXJ3ppULoEk/VviMUh7L5QiGdIs4RO9ALuqImVaH277HdhoV9bsW0J1x5eE+fNo3PZSl5C2gdZ0hDgNAm+7HaTTnz6vQv7Q6neQSRk5keBM81Cs34Yra/blC/B8STjfGud1VJ/rSwKBgQCTE6Y/FVr8Sxeyv4SBw7sywnluHzsO0ItKwU9MWDpOeaDyOhMw0U08x7uAsPC3yFdLU7uAuewd2vdv+tn9KHm6/0X7ZdbtMDgyu2yqga0ig8iUb915FZT45prDExkrfGQomNLF9tc8ZGFPHy/LYuIu2NYWziOg8b5gfXJ4afMt0QKBgQCI300PRZgji7+sntIxpx6U9tgXj4xsByzCwZ3ZVL5SQ66ZquS5vlLQjaJcC9oeFCRRzNHJoghi1SNdNiyXjc7UBF0AbvpRT2x5CmrFYrQDrLDKS/z42yk2ROwl3I/SO7Sv65drmBzwieGk83jk9vfGt2BNvyVj87ximTd6dRsprA==";
-        // $alipayPublicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAok8hnb8hEZBNO+axeUgL1b7PYkVxV+Vly1h5QWbNLPFk/Q4EOcqpc4gqXCamR6AGQFhZ6qY/szu0LisTbJkdZIvJW3zlBLAfK1eG13Cg1x4tOa0DZRaA+YIfDJHlkU2tosjc626Uygb651Z+h6QLu7ncNE4quTdXGmg4lfgnZV5wJlWXRXWSbXZfNYNGDcCJg9lY4wsCb7oyG3lh656DZz5EIZ5/axE/TNhXmLFl8LlBvZvKMKqjMRIyM63BsflShw3fGtFbf8bU15rMwYkb6amuBn1Py91CuZoOCX7L4wQqVUmWiJFCDWmEIU1ugE3JTAPIzEjR4E0ieVGdkhXgOQIDAQAB";
-        $alipayConfig = new AlipayConfig();
-        $alipayConfig->setServerUrl("https://openapi.alipay.com/gateway.do");
-        $alipayConfig->setAppId($params['app_id']);
-        $alipayConfig->setPrivateKey($params['rsa_key']);
-        $alipayConfig->setFormat("json");
-        $alipayConfig->setAlipayPublicKey($params['alipay_key']);
-        $alipayConfig->setCharset("UTF-8");
-        $alipayConfig->setSignType("RSA2");
-        $alipayClient = new AopClient($alipayConfig);
+        try {
+            $alipayClient = $this->build_alipay_client($params);
+        } catch (Exception $e) {
+            return '<span style="color:red">'.$e->getMessage().'</span>';
+        }
         $request = new AlipayTradeWapPayRequest();
         $request->setNotifyUrl($params['systemurl']."/modules/gateways/callback/alipay_full/notify.php");
         $request->setReturnUrl($params['systemurl']."/modules/gateways/callback/alipay_full/return.php");
-        $request->setBizContent("{".
-            "\"out_trade_no\":\""."lipi".md5(uniqid())."-".$params['invoiceid']."\",".
-            "\"total_amount\":\"".$params['amount']."\",".
-            "\"subject\":\"".$params['companyname']."订单 [# ".$params['invoiceid']." ]"."\",".
-            "\"product_code\":\"QUICK_WAP_WAY\"".
-        "}");
-        $responseResult = $alipayClient->pageExecute($request);
-        return $responseResult;
+        $request->setBizContent($this->build_biz_content($params, "QUICK_WAP_WAY"));
+        return $alipayClient->pageExecute($request);
     }
     
     public function mobile_mapi($params){
@@ -179,13 +196,11 @@ class alipayfull_link {
     public function f2fpay_get_basicconfig($params){
         return [
             'sign_type' => "RSA2",
-            'alipay_public_key' => $params['alipay_key'],
-            'merchant_private_key' => 
-                str_replace(["\r", "\n", "-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----"],
-                    "", $params['rsa_key']),
+            'alipay_public_key' => $this->normalize_key($params['alipay_key']),
+            'merchant_private_key' => $this->normalize_key($params['rsa_key']),
             'charset' => "UTF-8",
             'gatewayUrl' => "https://openapi.alipay.com/gateway.do",
-            'app_id' => $params['app_id'],
+            'app_id' => trim($params['app_id']),
             'notify_url' => $params['systemurl']."/modules/gateways/callback/alipay_full/f2fpay_notify.php",
             'MaxQueryRetry' => "10",
             'QueryDuration' => "3"
