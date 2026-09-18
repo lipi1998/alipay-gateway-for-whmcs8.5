@@ -117,12 +117,10 @@ class alipayfull_link
     /**
      * 当面付服务所需的配置数组 (f2fpay SDK 自成一套参数格式)。
      *
-     * f2fpay_notify.php 复用本方法来查单，因此保持 public。
-     *
      * @param array $params
      * @return array
      */
-    public function f2fpay_get_basicconfig($params)
+    private function f2fpay_get_basicconfig($params)
     {
         return [
             'sign_type' => alipayfull_api::SIGN_TYPE,
