@@ -3,119 +3,184 @@ if (!defined("WHMCS")) {
     die("This file cannot be accessed directly");
 }
 
-
 use Illuminate\Database\Capsule\Manager as Capsule;
 
-class alipayfull_config{
-    
-    function get_configuration (){
-        
+/**
+ * 管理端配置项。
+ *
+ * WHMCS 的网关配置是一次性声明的，没有"根据已选项动态显示字段"的机制，
+ * 所以这里先读一次库里已保存的 apitype，再决定要暴露哪些字段：
+ * 未保存过时只显示提示，保存后才显示对应接口需要的密钥字段。
+ */
+class alipayfull_config
+{
+    /**
+     * 组装配置项数组，供 alipay_full_config() 返回给 WHMCS。
+     *
+     * @return array
+     */
+    public function get_configuration()
+    {
         global $_ADMINLANG, $CONFIG;
-        $type = Capsule::table("tblpaymentgateways")->where("gateway","alipay_full")->where("setting","apitype")->first();
-        $skintype = Capsule::table("tblpaymentgateways")->where("gateway","alipay_full")->where("setting","skintype")->first();
-        if (empty($type)){
+
+        $apitype = $this->get_saved_setting("apitype");
+
+        if ($apitype === null) {
+            // 还没保存过接口类型，先让管理员选一次并保存
             $extra_config = [
-                "notice" => [
-                'FriendlyName' => '温馨提示',
-                'Type' => 'dropdown',
-                'Options' => [
-                    '1' => "</option></select><div class='alert alert-danger' role='alert' id='alipay_full_notice' style='margin-bottom: 0px;'>请点击 [ ".$_ADMINLANG['global']['savechanges']." ] 后 , 再进行修改配置</div><script>$('#alipay_full_notice').prev().hide();</script><select style='display:none'>",
-                    ],
-                ]
+                "notice" => $this->notice_field(
+                    "danger",
+                    "alipay_full_notice",
+                    "请点击 [ " . $_ADMINLANG['global']['savechanges'] . " ] 后 , 再进行修改配置",
+                    "温馨提示"
+                ),
             ];
         } else {
-            // Options 存库值为 "1"/"2"/"3"；兼容历史版本中误用的 hash 值
-            $apitype = (string) $type->value;
-            $is_pcpay = in_array($apitype, [
-                "1",
-                "c0d72bf5c627974148999e856ad4d6583ce3fa6f1cb080b9b9bf48c7298f3d00fb502d6cfebd06dcf76bb470fc751eb9",
-            ], true);
-            $is_pc_mobile = in_array($apitype, [
-                "2",
-                "3bf9729f147cbcb2259070d0b51000abbb71a0be80e2e36c7b0b636d4a6a0f0de851135b66c356c485fc780ffc198c67",
-            ], true);
-            $is_f2fpay = in_array($apitype, [
-                "3",
-                "33212f023f0caf709c954b1a192a56a7f2877161ffd7565cea66c50c1d80b901ee12b245e598bd8a62c458557014c8d3",
-            ], true);
-
-            if ($is_pcpay || $is_pc_mobile) {
-                $contract_notice = $is_pc_mobile
-                    ? "请确保已签约电脑网站支付，并申请手机网站支付功能"
-                    : "请确保已签约电脑网站支付";
-                $extra_config = [
-                        "app_id" => ["FriendlyName" => "应用ID (APPID)", "Type" => "text", "Size" => "60"],
-                        "alipay_key" => ["FriendlyName" => "支付宝公钥", "Type" => "textarea",  'Rows' => '10', 'Cols' => '60'],
-                        "rsa_key" => ["FriendlyName" => "RSA2(SHA256) 私钥", "Type" => "textarea",  'Rows' => '10', 'Cols' => '60',"Description" => '您可能需要 :<br/><a type="button" class="btn btn-primary" href="https://os.alipayobjects.com/download/secret_key_tools_RSA256_win.zip" target="_blank"><span class="glyphicon glyphicon-new-window"></span> RSA2(SHA256) 生成器下载</a> <a type="button" class="btn btn-primary" href="https://doc.open.alipay.com/docs/doc.htm?articleId=106130&docType=1" target="_blank"> <span class="glyphicon glyphicon-new-window"></span> OpenSSL生成教程</a><br/>  生成器私钥文件名 : rsa_private_key.pem 公钥文件名 : rsa_public_key.pem<br/>将私钥文件内容<br/>使用<span style="color:red">非Windows记事本打开</span> , 并将里面内容复制到上面文本框中<br/>公钥则请到'." <a href='https://open.alipay.com/platform/keyManage.htm' target='_blank'><span class='glyphicon glyphicon-new-window'></span> 商家支付宝 开放平台</a> 绑定", ],
-                        "notice" => [
-                        'FriendlyName' => '',
-                        'Type' => 'dropdown',
-                        'Options' => [
-                            '1' => "</option></select><div class='alert alert-info' role='alert' id='alipay_full_notice' style='margin-bottom: 0px;'>以上信息均可以在 <a href='https://open.alipay.com/platform/keyManage.htm' target='_blank'><span class='glyphicon glyphicon-new-window'></span> 商家支付宝 开放平台</a> 找到 。 ".$contract_notice."</div><script>$('#alipay_full_notice').prev().hide();</script><select style='display:none'>",
-                            ],
-                        ]
-                ];
-                if ($is_pc_mobile) {
-                    $extra_config["extra_notice"] =  [
-                        'FriendlyName' => '',
-                        'Type' => 'dropdown',
-                        'Options' => [
-                            '1' => "</option></select><div class='alert alert-info' role='alert' id='alipay_full_moblie' style='margin-bottom: 0px;'>请确保已经申请支付宝手机网站支付功能 , 否则未申请手机端将不会显示支付界面(显示未签约或其他错误页面)</div><script>$('#alipay_full_moblie').prev().hide();</script><select style='display:none'>",
-                            ],
-                        ];
-                }
-            } elseif ($is_f2fpay) {
-                    $extra_config = [
-                        "app_id" => ["FriendlyName" => "应用ID (APPID)", "Type" => "text", "Size" => "60"],
-                        "alipay_key" => ["FriendlyName" => "支付宝公钥", "Type" => "textarea",  'Rows' => '10', 'Cols' => '60'],
-                        "rsa_key" => ["FriendlyName" => "RSA2(SHA256) 私钥", "Type" => "textarea",  'Rows' => '10', 'Cols' => '60',"Description" => '您可能需要 :<br/><a type="button" class="btn btn-primary" href="https://os.alipayobjects.com/download/secret_key_tools_RSA256_win.zip" target="_blank"><span class="glyphicon glyphicon-new-window"></span> RSA2(SHA256) 生成器下载</a> <a type="button" class="btn btn-primary" href="https://doc.open.alipay.com/docs/doc.htm?articleId=106130&docType=1" target="_blank"> <span class="glyphicon glyphicon-new-window"></span> OpenSSL生成教程</a><br/>  生成器私钥文件名 : rsa_private_key.pem 公钥文件名 : rsa_public_key.pem<br/>将私钥文件内容<br/>使用<span style="color:red">非Windows记事本打开</span> , 并将里面内容复制到上面文本框中<br/>公钥则请到'." <a href='https://open.alipay.com/platform/keyManage.htm' target='_blank'><span class='glyphicon glyphicon-new-window'></span> 商家支付宝 开放平台</a> 绑定", ],
-                        "notice" => [
-                        'FriendlyName' => '',
-                        'Type' => 'dropdown',
-                        'Options' => [
-                            '1' => "</option></select><div class='alert alert-info' role='alert' id='alipay_full_notice' style='margin-bottom: 0px;'>以上信息均可以在 <a href='https://open.alipay.com/platform/keyManage.htm' target='_blank'><span class='glyphicon glyphicon-new-window'></span> 商家支付宝 开放平台</a> 找到 。 请确保已经在支付宝签约 当面付 必需合约</div><script>$('#alipay_full_notice').prev().hide();</script><select style='display:none'>",
-                            ],
-                        ]
-                    ];
-            } else {
-                $extra_config = [];
-            }
+            $extra_config = $this->credential_fields($apitype);
         }
+
         $base_config = [
-            "FriendlyName" => ['Type' => 'System','Value' => 'LiPi - 支付宝全能模块',],
-            "apitype" => ['FriendlyName' => '支付宝接口类型','Type' => 'dropdown',
+            "FriendlyName" => [
+                'Type' => 'System',
+                'Value' => 'LiPi - 支付宝全能模块',
+            ],
+            "apitype" => [
+                'FriendlyName' => '支付宝接口类型',
+                'Type' => 'dropdown',
                 'Options' => [
                     "1" => "[官方] 电脑网站支付",
                     "2" => "[官方] 电脑网站支付 + 手机网站支付",
                     "3" => "[官方] 当面付",
                 ],
             ],
-            "skintype" => ['FriendlyName' => '前台皮肤','Type' => 'dropdown',
-                'Options' => [
-                    "1" => "[官方] Bootstrap",
-                ],
-            ]
         ];
-        if (!empty($skintype) && $skintype->value === "2"){
-            $base_config = array_merge($base_config,[
-                "customhtml" => [
-                'FriendlyName' => '自定义html',
-                'Type' => 'textarea',
+
+        $config = array_merge($base_config, $extra_config);
+        $config["author"] = $this->notice_field(
+            "success",
+            "alipay_full_author",
+            "该插件由 <a href='https://www.lipiapp.com' target='_blank'><span class='glyphicon glyphicon-new-window'></span> LiPi</a> 开发 ， 本款插件为免费开源插件"
+            . "<br/><span class='glyphicon glyphicon-ok'></span> 适用于 WHMCS 8.5 , 当前 WHMCS 版本 " . $CONFIG["Version"]
+            . "<br/><span class='glyphicon glyphicon-ok'></span> 需要 PHP 7.4 以上的环境 , 当前 PHP 版本 " . phpversion(),
+            '',
+            "<style>* {font-family: Microsoft YaHei Light , Microsoft YaHei}</style>"
+        );
+
+        return $config;
+    }
+
+    /**
+     * 读取本模块已保存的某项配置。
+     *
+     * @param string $setting
+     * @return string|null 未保存过时返回 null
+     */
+    private function get_saved_setting($setting)
+    {
+        $row = Capsule::table("tblpaymentgateways")
+            ->where("gateway", "alipay_full")
+            ->where("setting", $setting)
+            ->first();
+
+        return empty($row) ? null : (string) $row->value;
+    }
+
+    /**
+     * 三种接口类型都需要 APPID + 支付宝公钥 + RSA2 私钥，差别只在签约提示文案。
+     *
+     * @param string $apitype 已保存的接口类型 ("1" / "2" / "3")
+     * @return array
+     */
+    private function credential_fields($apitype)
+    {
+        $contract_notice = [
+            "1" => "请确保已签约电脑网站支付",
+            "2" => "请确保已签约电脑网站支付，并申请手机网站支付功能",
+            "3" => "请确保已经在支付宝签约 当面付 必需合约",
+        ];
+
+        if (!isset($contract_notice[$apitype])) {
+            return [];
+        }
+
+        $fields = [
+            "app_id" => [
+                "FriendlyName" => "应用ID (APPID)",
+                "Type" => "text",
+                "Size" => "60",
+            ],
+            "alipay_key" => [
+                "FriendlyName" => "支付宝公钥",
+                "Type" => "textarea",
                 'Rows' => '10',
                 'Cols' => '60',
-                'Description' => "<div class='alert alert-info' role='alert' style='margin-bottom: 0px;'>我们建议您在外部编辑器编辑<br/>您可以用的变量<br/><code>%pay_link%</code> - 付款链接<br/><code>%mobliepay_link%</code> - 移动端二维码页面地址(建议使用iframe)</div>",
-                ],
-            ]);
-        } 
-        
-        $config = array_merge($base_config,$extra_config);
-        $config["author"] = [
-            'FriendlyName' => '',
-            'Type' => 'dropdown',
-            'Options' => [
-                '1' => "</option></select><div class='alert alert-success' role='alert' id='alipay_full_author' style='margin-bottom: 0px;'>该插件由 <a href='https://www.lipiapp.com' target='_blank'><span class='glyphicon glyphicon-new-window'></span> LiPi</a> 开发 ， 本款插件为免费开源插件<br/><span class='glyphicon glyphicon-ok'></span> 支持 WHMCS 5/6/7 , 当前WHMCS 版本 ".$CONFIG["Version"]."<br/><span class='glyphicon glyphicon-ok'></span> 仅支持 PHP 5.4 以上的环境 , 当前PHP版本 ".phpversion()."</div><script>$('#alipay_full_author').prev().hide();</script><style>* {font-family: Microsoft YaHei Light , Microsoft YaHei}</style><select style='display:none'>",
             ],
+            "rsa_key" => [
+                "FriendlyName" => "RSA2(SHA256) 私钥",
+                "Type" => "textarea",
+                'Rows' => '10',
+                'Cols' => '60',
+                "Description" => $this->rsa_key_description(),
+            ],
+            "notice" => $this->notice_field(
+                "info",
+                "alipay_full_notice",
+                "以上信息均可以在 <a href='https://open.alipay.com/platform/keyManage.htm' target='_blank'><span class='glyphicon glyphicon-new-window'></span> 商家支付宝 开放平台</a> 找到 。 "
+                . $contract_notice[$apitype]
+            ),
         ];
-        return $config;
+
+        if ($apitype === "2") {
+            $fields["extra_notice"] = $this->notice_field(
+                "info",
+                "alipay_full_moblie",
+                "请确保已经申请支付宝手机网站支付功能 , 否则未申请手机端将不会显示支付界面(显示未签约或其他错误页面)"
+            );
+        }
+
+        return $fields;
+    }
+
+    /**
+     * 生成一个"伪配置项"，用来在配置页面里插入一段提示框。
+     *
+     * WHMCS 只允许输出预定义的几种控件，因此这里借用 dropdown：
+     * 先闭合它自己的 select，输出提示框，再开一个隐藏的 select 把后面的标签吃掉。
+     *
+     * @param string $style        Bootstrap 提示框样式 (info / danger / success)
+     * @param string $id           提示框元素 id，用于隐藏对应的 label
+     * @param string $html         提示框内容
+     * @param string $friendlyname 左侧标题，通常留空
+     * @param string $append       额外追加的 HTML
+     * @return array
+     */
+    private function notice_field($style, $id, $html, $friendlyname = '', $append = '')
+    {
+        $markup = "</option></select>"
+            . "<div class='alert alert-" . $style . "' role='alert' id='" . $id . "' style='margin-bottom: 0px;'>" . $html . "</div>"
+            . "<script>$('#" . $id . "').prev().hide();</script>"
+            . $append
+            . "<select style='display:none'>";
+
+        return [
+            'FriendlyName' => $friendlyname,
+            'Type' => 'dropdown',
+            'Options' => ['1' => $markup],
+        ];
+    }
+
+    /**
+     * RSA2 私钥字段下方的填写说明。
+     *
+     * @return string
+     */
+    private function rsa_key_description()
+    {
+        return '您可能需要 :<br/>'
+            . '<a type="button" class="btn btn-primary" href="https://opendocs.alipay.com/common/02kipl" target="_blank"><span class="glyphicon glyphicon-new-window"></span> 密钥生成工具与教程</a>'
+            . '<br/>生成器私钥文件名 : rsa_private_key.pem 公钥文件名 : rsa_public_key.pem'
+            . '<br/>将私钥文件内容使用<span style="color:red">非Windows记事本打开</span> , 并将里面内容复制到上面文本框中'
+            . '<br/>公钥则请到'
+            . " <a href='https://open.alipay.com/platform/keyManage.htm' target='_blank'><span class='glyphicon glyphicon-new-window'></span> 商家支付宝 开放平台</a> 绑定";
     }
 }

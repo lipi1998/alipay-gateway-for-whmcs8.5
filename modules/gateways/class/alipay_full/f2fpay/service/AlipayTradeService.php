@@ -5,7 +5,15 @@
  * Date: 16/5/19
  * Time: 下午2:09
  */
-require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'./../../AopSdk.php';
+// 显式加载所需的 aop 类。原先此处引入 AopSdk.php，由 lotusphp 自动加载器
+// 用 include() 重新载入整个 aop 目录，会与调用方的 require_once 冲突并触发
+// "Cannot redeclare" 致命错误，同时每次请求都要扫描数千个 SDK 文件。
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/AopClient.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradePayRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradePrecreateRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradeQueryRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradeRefundRequest.php';
+require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../../aop/request/AlipayTradeCancelRequest.php';
 require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'./../model/result/AlipayF2FPayResult.php';
 require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../model/result/AlipayF2FQueryResult.php';
 require_once dirname ( __FILE__ ).DIRECTORY_SEPARATOR.'../model/result/AlipayF2FRefundResult.php';
@@ -100,7 +108,6 @@ class AlipayTradeService {
 
 		$appAuthToken = $req->getAppAuthToken();
 
-		$this->writeLog($bizContent);
 
 		//echo $bizContent;
 		
@@ -170,7 +177,6 @@ class AlipayTradeService {
 	// 当面付2.0消费退款,$req为对象变量
 	public function refund($req) {
 		$bizContent = $req->getBizContent();
-		$this->writeLog($bizContent);
 		$request = new AlipayTradeRefundRequest();
 		$request->setBizContent ( $bizContent );
 		$response = $this->aopclientRequestExecute ( $request , NULL ,$req->getAppAuthToken());
@@ -193,7 +199,6 @@ class AlipayTradeService {
 	public function qrPay($req) {
 
 		$bizContent = $req->getBizContent();
-		$this->writeLog($bizContent);
 
 		$request = new AlipayTradePrecreateRequest();
 		$request->setBizContent ( $bizContent );
@@ -219,7 +224,6 @@ class AlipayTradeService {
 
 	public function query($queryContentBuilder) {
 		$biz_content = $queryContentBuilder->getBizContent();
-		$this->writeLog($biz_content);
 		$request = new AlipayTradeQueryRequest();
 		$request->setBizContent ( $biz_content );
 		$response = $this->aopclientRequestExecute ( $request , NULL, $queryContentBuilder->getAppAuthToken() );
@@ -314,7 +318,6 @@ class AlipayTradeService {
 	
 	public function cancel($cancelContentBuilder) {
 		$biz_content= $cancelContentBuilder->getBizContent();
-		$this->writeLog($biz_content);
 		$request = new AlipayTradeCancelRequest();
 		$request->setBizContent ( $biz_content );
 		$response = $this->aopclientRequestExecute ( $request ,NULL ,$cancelContentBuilder->getAppAuthToken() );
@@ -343,29 +346,9 @@ class AlipayTradeService {
 
 
 		$aop->format=$this->format;
-		// 开启页面信息输出
-		$aop->debugInfo=true;
 		$result = $aop->execute($request,$token,$appAuthToken);
 
-		//打开后，将url形式请求报文写入log文件
-		//$this->writeLog("response: ".var_export($result,true));
 		return $result;
-	}
-
-	function writeLog($text) {
-		// $text=iconv("GBK", "UTF-8//IGNORE", $text);
-		//$text = characet ( $text );
-		file_put_contents ( "log/log.txt", date ( "Y-m-d H:i:s" ) . "  " . $text . "\r\n", FILE_APPEND );
-	}
-
-	/** *利用google api生成二维码图片
-	 * $content：二维码内容参数
-	 * $size：生成二维码的尺寸，宽度和高度的值
-	 * $lev：可选参数，纠错等级
-	 * $margin：生成的二维码离边框的距离
-	 */
-	function create_erweima($content, $size = '200', $lev = 'L', $margin= '0') {
-		return urlencode($content);
 	}
 
 }

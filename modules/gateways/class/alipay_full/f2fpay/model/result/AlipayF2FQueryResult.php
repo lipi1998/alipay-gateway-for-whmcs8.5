@@ -40,5 +40,3 @@ class AlipayF2FQueryResult
         return $this->response;
     }
 }
-
-?>

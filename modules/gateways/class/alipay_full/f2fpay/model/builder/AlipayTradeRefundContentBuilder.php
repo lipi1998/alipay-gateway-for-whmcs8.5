@@ -145,5 +145,3 @@ class AlipayTradeRefundContentBuilder extends ContentBuilder
         return $this->terminalId;
     }
 }
-
-?>

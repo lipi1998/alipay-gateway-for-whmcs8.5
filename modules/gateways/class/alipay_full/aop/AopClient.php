@@ -96,7 +96,9 @@ class AopClient
         $stringToBeSigned = "";
         $i = 0;
         foreach ($params as $k => $v) {
-            if ("@" != substr($v, 0, 1)) {
+            // 空值参数不参与签名，与支付宝官方 SDK 保持一致；否则通知报文中
+            // 带空值的字段会导致验签失败。
+            if (false === $this->checkEmpty($v) && "@" != substr($v, 0, 1)) {
 
                 // 转换成目标字符集
                 $v = $this->characet($v, $this->postCharset);
